@@ -1,6 +1,7 @@
 import re
 import ollama
 from embedding_pipeline.src.retriever import Retriever
+from embedding_pipeline.src.llm_client import LLMClient
 
 MAX_DISTANCE = 0.6
 MAX_CONTEXT_CHUNKS = 4
@@ -21,8 +22,10 @@ Rules:
 
 
 class QAEngine:
-    def __init__(self, website_url: str):
+    def __init__(self, website_url: str, llm_provider="openai"):
         self.retriever = Retriever(website_url)
+        self.llm = LLMClient(llm_provider)
+
 
     # --------------------------------------------------
     # Detect list questions
@@ -110,17 +113,8 @@ class QAEngine:
             "content": f"Context:\n{context}\n\nQuestion:\n{question}"
         })
 
-        response = ollama.chat(
-            model="tinyllama",
-            messages=messages,
-            options={
-                "temperature": 0,
-                "num_predict": 200,
-                "stop": ["\n\n", "Answer:", "Question:"]
-            }
-        )
+        answer = self.llm.generate(messages)
 
-        answer = response["message"]["content"].strip()
 
         if not answer or FALLBACK_MESSAGE.lower() in answer.lower():
             return FALLBACK_MESSAGE

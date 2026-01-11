@@ -1,0 +1,35 @@
+
+# Core Application
+
+streamlit>=1.32.0
+
+# Web Crawling & Content Extraction
+
+requests>=2.31.0
+trafilatura>=1.8.0
+beautifulsoup4>=4.12.2
+validators>=0.22.0
+tldextract>=5.1.1
+lxml>=5.1.0
+
+
+# Text Processing & Embeddings
+
+sentence-transformers>=2.6.1
+torch>=2.1.0
+
+
+# Vector Database
+
+chromadb>=0.4.22
+
+
+# Local LLM Client (Ollama)
+
+ollama>=0.1.8
+
+
+# Utilities
+
+numpy>=1.24.0
+tqdm>=4.66.0

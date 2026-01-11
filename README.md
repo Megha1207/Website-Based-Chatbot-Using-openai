@@ -2,13 +2,11 @@
 
 ## Project Overview
 
-This project implements an AI-powered chatbot that answers questions **strictly based on the content of a user-provided website**.  
-The system crawls a website, extracts meaningful textual content, converts it into embeddings, stores those embeddings persistently, and enables grounded question answering through semantic retrieval.
+This project implements an AI-powered chatbot that answers questions **strictly based on the content of a user-provided website**. The system crawls a website, extracts meaningful textual content, converts it into embeddings, stores those embeddings persistently, and enables grounded question answering through semantic retrieval.
 
-The chatbot is explicitly designed to **avoid hallucinations**.  
-If a question cannot be answered using the website content, it responds exactly with:
+The chatbot is explicitly designed to **avoid hallucinations**. If a question cannot be answered using the website content, it responds exactly with:
 
-> **“The answer is not available on the provided website.”**
+> **"The answer is not available on the provided website."**
 
 The solution follows a retrieval-augmented generation (RAG) architecture with multiple safeguards to ensure correctness, relevance, and grounding.
 
@@ -22,225 +20,196 @@ The system is divided into **two main phases**:
 
 This phase runs once per website (or during re-indexing):
 
-1. **URL Validation**
-   - Ensures the input URL is valid and reachable
-   - Handles empty, blocked, or unsupported websites gracefully
-
-2. **Website Crawling**
-   - Crawls HTML pages starting from the provided URL
-   - Avoids duplicate URLs
-   - Respects domain boundaries
-   - Supports both single-page and multi-page websites
-
-3. **Content Extraction**
-   - Extracts meaningful textual content only
-   - Removes:
-     - Headers
-     - Footers
-     - Navigation menus
-     - Advertisements
-
-4. **Text Processing and Chunking**
-   - Cleans and normalizes extracted text
-   - Splits text into overlapping semantic chunks
-   - Chunk size and overlap are configurable
-   - Each chunk retains metadata:
-     - Source URL
-     - Page title
-     - Crawl depth
-
-5. **Embedding Generation**
-   - Converts each text chunk into a dense vector embedding
-   - Embeddings are generated once and reused
-
-6. **Vector Storage**
-   - Stores embeddings persistently in a vector database
-   - Each website has its own isolated vector store identified by a deterministic site ID
-
----
+1. **URL Validation** - Ensures the input URL is valid and reachable; handles empty, blocked, or unsupported websites gracefully
+2. **Website Crawling** - Crawls HTML pages starting from the provided URL; avoids duplicates; respects domain boundaries
+3. **Content Extraction** - Extracts meaningful textual content only; removes headers, footers, navigation menus, and advertisements
+4. **Text Processing and Chunking** - Cleans and normalizes text; splits into overlapping semantic chunks with configurable size and overlap; retains metadata (source URL, page title, crawl depth)
+5. **Embedding Generation** - Converts each text chunk into a dense vector embedding for reuse
+6. **Vector Storage** - Stores embeddings persistently in a vector database; each website has its own isolated vector store
 
 ### 2. Question Answering Pipeline
 
 This phase runs for every user query:
 
-1. **Query Embedding**
-   - The user question is embedded using the same embedding model
-
-2. **Semantic Retrieval**
-   - Relevant chunks are retrieved using cosine similarity
-   - Distance thresholds filter weak or irrelevant matches
-
-3. **Context Assembly**
-   - Multiple relevant chunks are combined to form a site-wide context
-   - Prevents answers being limited to a single page
-
-4. **Grounding Validation**
-   - Ensures the retrieved context actually supports the question
-   - If not supported, a fallback response is returned
-
-5. **LLM Answer Generation**
-   - A local LLM generates an answer using only the retrieved context
-   - A strict system prompt prevents use of external knowledge
-
-6. **Post-Generation Validation**
-   - Validates that the generated answer does not introduce:
-     - External facts
-     - Unsupported entities
-     - Numeric hallucinations
+1. **Query Embedding** - The user question is embedded using the same embedding model
+2. **Semantic Retrieval** - Relevant chunks are retrieved using cosine similarity with distance thresholds
+3. **Context Assembly** - Multiple relevant chunks are combined to form site-wide context
+4. **Grounding Validation** - Ensures retrieved context supports the question; returns fallback if not
+5. **LLM Answer Generation** - A local LLM generates answers using only retrieved context
+6. **Post-Generation Validation** - Validates that answers don't introduce external facts, unsupported entities, or numeric hallucinations
 
 ---
 
-## Frameworks Used
+## Frameworks & Technologies
 
-### AI Orchestration Frameworks
-
-- **LangChain / LangGraph**: Not used
-
-**Reasoning:**  
-The project avoids heavy orchestration frameworks to keep logic explicit, auditable, and transparent.  
-All retrieval, grounding, and validation logic is implemented manually to demonstrate full control over hallucination prevention.
+- **LangChain / LangGraph**: Not used - Project avoids heavy orchestration frameworks to keep logic explicit, auditable, and transparent
+- **LLM Model**: TinyLLaMA (via Ollama) - Fully local inference with deterministic behavior; suitable for context-grounded QA
+- **Vector Database**: ChromaDB (persistent mode) - Lightweight, supports cosine similarity search, persistent storage, per-website isolation
+- **Embedding Model**: SentenceTransformers - Converts semantic chunks into dense vectors; uses cosine similarity for retrieval
 
 ---
 
-## LLM Model Used
-
-### Model
-- **TinyLLaMA (via Ollama)**
-
-### Justification
-- Fully local inference (no external API dependency)
-- Deterministic and reproducible behavior
-- Suitable for extractive, context-grounded QA
-- No rate limits or API costs
-- Works in CPU-only environments
-
-The LLM is used strictly as a **language generator**, not as a knowledge source.
-
----
-
-## Vector Database Used
-
-### Database
-- **ChromaDB (persistent mode)**
-
-### Justification
-- Lightweight and easy to run locally
-- Supports cosine similarity search
-- Persistent embedding storage
-- Per-website vector store isolation
-- No external service dependency
-
-Embeddings are generated once and reused across sessions.
-
----
-
-## Embedding Strategy
-
-- **Model**: SentenceTransformers
-- **Approach**:
-  - Convert each semantic chunk into a dense vector
-  - Use cosine similarity for retrieval
-- **Why SentenceTransformers**:
-  - Strong semantic similarity performance
-  - Open-source and locally runnable
-  - Well-supported and widely adopted
-
-The same embedding model is used for both documents and queries to ensure consistency.
-
----
-
-## Setup and Run Instructions
+## Setup Instructions
 
 ### 1. Create a virtual environment
 ```bash
 python -m venv .venv
+```
 
+### 2. Activate the environment
 
-2. Activate the environment
-
-Windows
-
+**Windows**
+```bash
 .venv\Scripts\activate
+```
 
-
-macOS / Linux
-
+**macOS / Linux**
+```bash
 source .venv/bin/activate
+```
 
-3. Install dependencies
+### 3. Install dependencies
+```bash
 pip install -r requirements.txt
+```
 
-4. Install and start Ollama
+### 4. Install and start Ollama
+```bash
 ollama pull tinyllama
-
+```
 
 Ensure the Ollama service is running.
 
-5. Run the Streamlit application
+### 5. Run the Streamlit application
+```bash
 streamlit run app.py
+```
 
-User Interface
+---
+
+## User Interface
 
 The Streamlit interface allows users to:
+- Enter a website URL
+- Index or re-index the website
+- Ask questions via a chat interface
+- View conversation history
+- Receive clear fallback responses when answers are unavailable
 
-Enter a website URL
+Re-indexing is automatically skipped if embeddings exist, unless explicitly requested.
 
-Index or re-index the website
+---
 
-Ask questions via a chat interface
+## Assumptions & Limitations
 
-View previous conversation history
+### Assumptions
+- Websites primarily contain HTML-based textual content
+- JavaScript-rendered content may be partially unsupported
+- Answer quality depends on extracted text quality
+- Designed for factual, informational websites
 
-Receive clear fallback responses when answers are unavailable
+### Limitations
+- No support for PDFs or image-based text
+- Crawling speed depends on website size and network conditions
+- Local LLM performance depends on available system memory
+- No multilingual support in current version
 
-Re-indexing is automatically skipped if embeddings already exist, unless explicitly requested.
+---
 
-Assumptions
+## Future Improvements
 
-Websites primarily contain HTML-based textual content
+- Asynchronous crawling for faster indexing
+- Improved boilerplate removal for complex websites
+- Source citation display for each answer
+- Docker-based deployment
+- FastAPI backend for scalability
+- Optional hybrid keyword + semantic retrieval
+- Advanced re-ranking models for improved precision
 
-JavaScript-rendered content may be partially unsupported
+---
 
-The quality of answers depends on the quality of extracted text
 
-The system is designed for factual, informational websites
 
-Limitations
+## Deployment (Local – Ollama)
 
-No support for PDFs or image-based text
+This project supports fully local deployment using Ollama for Large Language Model inference. This mode requires no external API keys and ensures all inference runs entirely on the local machine.
 
-Crawling speed depends on website size and network conditions
+### Prerequisites
 
-Local LLM performance depends on available system memory
+- Python 3.10+
+- Sufficient system memory (minimum 6 GB recommended)
+- Ollama installed and running
 
-No multilingual support in the current version
+### Install Ollama
 
-Future Improvements
+Download and install Ollama from:
 
-Asynchronous crawling for faster indexing
+[https://ollama.com](https://ollama.com)
 
-Improved boilerplate removal for complex websites
+Verify installation:
 
-Source citation display for each answer
+```bash
+ollama --version
+```
 
-Docker-based deployment
+### Pull the LLM Model
 
-FastAPI backend for scalability
+The project is configured to use a lightweight local model by default.
 
-Optional hybrid keyword + semantic retrieval
+```bash
+ollama pull tinyllama
+```
 
-Advanced re-ranking models for improved precision
+Ensure the model is available:
 
-Summary
+```bash
+ollama list
+```
 
-This project demonstrates a carefully engineered retrieval-augmented chatbot with a strong emphasis on:
+### Activate Virtual Environment
 
-Grounded answers
+**Windows**
+```bash
+.venv\Scripts\activate
+```
 
-Reusable embeddings
+**macOS / Linux**
+```bash
+source .venv/bin/activate
+```
 
-Explicit hallucination prevention
+### Install Dependencies
+```bash
+pip install -r requirements.txt
+```
 
-Clean modular architecture
+### Start Ollama Service
 
-Clear separation of concerns
+Ensure Ollama is running in the background:
+
+```bash
+ollama run tinyllama
+```
+
+You may exit the prompt after confirming it starts successfully.
+
+### Run the Application
+```bash
+streamlit run app.py
+```
+
+The application will automatically detect and use Ollama as the LLM provider when no cloud API key is configured.
+
+### Notes
+
+- All LLM inference runs locally on the user’s machine
+- No data is sent to external services
+- Performance depends on available system memory and CPU
+- Larger models may require additional RAM
+
+### When to Use Ollama Deployment
+
+- Local development and testing
+- Privacy-sensitive data
+- Offline environments
+- Demonstrating system design without cloud dependencies

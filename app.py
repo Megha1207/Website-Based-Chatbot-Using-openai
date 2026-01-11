@@ -129,7 +129,8 @@ if st.session_state.indexed:
     def load_qa(url):
         return QAEngine(url)
 
-    qa = load_qa(st.session_state.website_url)
+    qa = QAEngine(st.session_state.website_url, llm_provider="openai")
+
 
     question = st.text_input(
         "Your question",
