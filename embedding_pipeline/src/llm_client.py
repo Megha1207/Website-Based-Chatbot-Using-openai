@@ -7,8 +7,7 @@ class LLMClient:
         self.provider = provider
 
         if provider == "openai":
-            self.client = OpenAI(api_key="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")
-
+            self.client =OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
     def generate(self, messages):
         if self.provider == "openai":
             response = self.client.chat.completions.create(
